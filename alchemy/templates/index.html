@@ -34,6 +34,7 @@
             <div class="post-content">
               {{ article.content|striptags|truncate(256) }}
             </div>
+	    <a type="button" class="btn btn-default pull-right" href="/{{ article.url }}" title="Read More">Read More</a>
           </div>
         </div>
       </div>
