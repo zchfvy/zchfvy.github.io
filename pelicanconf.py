@@ -8,6 +8,16 @@ SITEURL = ''
 
 PATH = 'content'
 
+STATIC_PATHS = ['favicon/']
+EXTRA_PATH_METADATA = {
+    'favicon/favicon.ico': {'path': 'favicon.ico'},
+    'favicon/favicon-196x196.png': {'path': 'favicon-196x196.png'},
+    'favicon/favicon-160x160.png': {'path': 'favicon-160x160.png'},
+    'favicon/favicon-96x96.png'  : {'path': 'favicon-96x96.png'}  ,
+    'favicon/favicon-32x32.png'  : {'path': 'favicon-32x32.png'}  ,
+    'favicon/favicon-16x16.png'  : {'path': 'favicon-16x16.png'}  ,
+}
+
 THEME = 'alchemy'
 
 TIMEZONE = 'America/Vancouver'
@@ -32,3 +42,5 @@ LICENSE_URL = 'http://creativecommons.org/licenses/by-sa/4.0/'
 EMAIL_ADDRESS = 'hs.jason@gmail.com'
 TWITTER_ADDRESS = 'https://twitter.com/jason_hs'
 GITHUB_ADDRESS = 'https://github.com/jason-hs'
+
+EXTRA_FAVICON = True
