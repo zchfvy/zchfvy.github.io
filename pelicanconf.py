@@ -44,3 +44,5 @@ TWITTER_ADDRESS = 'https://twitter.com/jason_hs'
 GITHUB_ADDRESS = 'https://github.com/jason-hs'
 
 EXTRA_FAVICON = True
+
+DISQUS_SITENAME = 'zchfvy'
