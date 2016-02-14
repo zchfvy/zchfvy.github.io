@@ -8,7 +8,7 @@ SITEURL = ''
 
 PATH = 'content'
 
-STATIC_PATHS = ['favicon/']
+STATIC_PATHS = ['favicon/', 'images/']
 EXTRA_PATH_METADATA = {
     'favicon/favicon.ico': {'path': 'favicon.ico'},
     'favicon/favicon-196x196.png': {'path': 'favicon-196x196.png'},
