@@ -46,3 +46,15 @@ GITHUB_ADDRESS = 'https://github.com/jason-hs'
 EXTRA_FAVICON = True
 
 DISQUS_SITENAME = 'zchfvy'
+
+import markdown
+MARKDOWN = {
+    'extension_configs': {
+        'markdown.extensions.codehilite': {'css_class': 'highlight'},
+        'markdown.extensions.extra': {},
+        'markdown.extensions.meta': {},
+        'markdown_captions': {},
+        'markdown_vidify': {'controls': True},
+    },
+    'output_format': 'html5'
+}
