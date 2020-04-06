@@ -1,0 +1,117 @@
+Notes for mlagents_2
+
+NOTES:
+
+(I wrote these for the previous article too, but deleted them all! I also
+deleted notwes for the first 1/2 of this article already. In the fure I'm going
+o leave these as a commented-out section!)
+
+nevermind, i forgot the hyperparameters!!!! (Wasnt using self-play)
+oh well, we have a baselien for normal training now
+gonna make the changes anyways because:
+1) Is jsut needed anwyays regardless of waht we are doing
+2) Is "recomended" for competitive trainign liek this
+3) Is actualy a simplification
+forreal_2 - same, but dumber (slow to react adn turn to enemies) !! 1hr
+
+
+trained a bit, aparently doesn't like that. let's do +1 0 -1
+forreal_3 - absolute disaaster, like early failed trains in part1 !! 2hr
+
+ok two hours and no progress
+Attempting another thing, gonna run the example
+OK TWO THINGS
+- 1 - the xample works fine
+- 2 - All this time i was forgettign to call _Agent.Done_ when resetting (only
+  when agents died)
+  
+
+ARRGH
+
+Ok, fixing and trying again!
+also adding back in the "hit" reward and "tiem penalty" becasue fuck it that's
+why
+Alos, i havent actualy done it but maybe should add a max_steps to reset this in
+earlier runs faster
+forreal_4 - agressive as in II_3 !! 10hr
+
+Actualy I immediatley regret addign those rewards back it, it may be fuckign the
+ELO... gonna let it run a bit anyways jsut in case
+- progress
+    early AI is learnign to suicide off-edge to avoid time penalty, though that
+    just makes the other team win :-
+
+Ok, taht did not work, ELO decresing wihtout bound!
+removing the extra rewards and adding time limit
+forreal_5 - evenetualy kill eachother, but dumb boys  !! 3.5hr
+
+Ok, so noew the ELO is _increaseig_ without bound
+Gonna stop deisablign the whole agent when dead and instead just
+ - MOve it out the way
+ - DIsable the decision requestor component
+forreal_6  < garbage data now, don't use
+- Actualy, you can't disable thee requestor, gonna use an "isdead" variable
+forreal_7 - start with 'mashing' but then develop into a slow/early version of
+             spiraling !! 5.5hr
+- Jut read the docs again, elo increasing withouyt bound is a good thign
+  aparently (ELO inflation and all as bad players are eliminated). Fortunatley
+  ELO still seems to be increasing.
+
+Still, no real strategy developing, conisdering two things
+- Adjust self-play hyperparameters (window and save steps)
+- Adjust the scenario itself for a "stronger" good strategy.
+OK, that's it, done trainign this way for now
+Tomorrow gonna try a better gameplay/sim base
+
+
+But no matter waht I did, no interesting behaviour emerged...
+
+STILL FUBAR, REJIG SIM
+
+ALSO BECOMIGN ANNOYING TOTRAIN
+
+
+Maybe I need a grander problem still?
+
+ONE LAST TRY BEFORE THOUGH
+ - shield radius up
+ - self play parameters tweked (4x time between saves)
+ forreal_9 !! 18 FUCKIGN HOURS
+
+Soo at this point I got something - I was noticing this a bit in earlier runs,
+butt he forreal_9 run seemed to train a bit better (and also trained 18 hours).
+The result is this "spiraling" behaviour where both teams push the right flank
+hard and end up spinning around eachother. I'm not sure how this works, adn it's
+certianly not what I expected (I expected them ballign up adn pushing) but it is
+_a tactic_ and this is really exciting.
+
+Now that I'm confident in the ability to train self-play, i'm gonna tweak the
+sim further by adding some more fun gameplay elements!
+WAait not yet
+
+This is hella slow. Switching from running in unity to running as standalone
+
+Before was 10x acceleration
+Now running with 30x acceleration and also 8x instances
+Early emperical speedup numbers is 6x
+With further tweaking this might be increased
+
+And hell yeah! Got sucessful train again, but this time "blobbing" behaviour.
+Want to make the agents more agressive, add time-penalty.
+
+And now back to a spirally thing, but a little different.
+
+Ok, let's try adding a few pieces of info:
+- Own health
+- How many friends are alive
+- Avg friend health
+- How many enemeis are alive
+- Avg Enemy health
+
+
+Trained npw. Reslted in some mix of previous blobbing and spiraling behaviours.
+This seems ike a fairly clever behaviur, at te limits of what is possible withut
+addming mre complex game mechanics.
+
+Rejigging the problem, again!
+===========
