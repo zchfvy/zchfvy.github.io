@@ -3,3 +3,4 @@ markdown-captions>=2
 markdown-vidify>=0.1.0
 pelican>=4.2.0
 Pygments>=2.5.2
+ghp-import
