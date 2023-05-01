@@ -23,4 +23,7 @@ jobs:
       run: make publish
 
     - name: Publish pages
-      run: make github
+      run: |
+        git checkout gh-pages
+        git pull
+        make github
