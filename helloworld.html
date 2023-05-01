@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+      <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="https://zchfvy.com/helloworld.html" />
+
+    <title>  Zchfvy &mdash; Hello World
+</title>
+
+      <link rel="icon" type="image/png" href="/favicon-196x196.png" sizes="196x196">
+      <link rel="icon" type="image/png" href="/favicon-160x160.png" sizes="160x160">
+      <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+      <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+      <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+
+
+      <link type="application/atom+xml" rel="alternate" href="/feeds/all.atom.xml"  title="Zchfvy Atom Feed">
+
+    <link rel="stylesheet" href="https://zchfvy.com/theme/css/style.css">
+    <link rel="stylesheet" href="https://zchfvy.com/theme/css/style_extra.css">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-73227889-1', 'auto');
+    ga('send', 'pageview');
+
+  </script>
+
+    <meta name="author" content="Jason Hamilton-Smith">
+    <meta name="description" content="An introduction to my website, and how it was created.">
+  <meta name="tags" contents="pelican, aws, website, ">
+</head>
+
+<body>
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <h1 class="header-name">
+        <a class="nodec" href="https://zchfvy.com">Zchfvy</a>
+      </h1>
+      <h3 class="header-text"></h3>
+      <ul class="header-menu list-inline">
+          <li><a class="nodec icon-mail-alt" href="mailto:hs.jason@gmail.com"></a></li>
+          <li><a class="nodec icon-github" href="https://github.com/jason-hs"></a></li>
+          <li><a class="nodec icon-twitter" href="https://twitter.com/jason_hs"></a></li>
+          <li><a class="nodec icon-rss" href="/feeds/all.atom.xml"></a></li>
+      </ul>
+    </div>
+  </div>
+</header> <!-- /.header -->  <div class="container">
+  <div class="post full-post">
+    <h1 class="post-title">
+      <a href="/helloworld.html" title="Permalink to Hello World">Hello World</a>
+    </h1>
+    <ul class="list-inline">
+      <li class="post-date">
+        <a class="text-muted" href="/helloworld.html" title="2016-02-01T23:11:00-08:00">Mon 01 February 2016</a>
+      </li>
+      <li class="muted">&middot;</li>
+      <li class="post-category">
+        <a href="https://zchfvy.com/category/misc.html">Misc</a>
+      </li>
+        <li class="muted">&middot;</li>
+        <li>
+            <a href="/tag/pelican.html">pelican</a>,             <a href="/tag/aws.html">aws</a>,             <a href="/tag/website.html">website</a>        </li>
+    </ul>
+    <div class="post-content">
+      <p>Looks like I finally did it! I made a webpage! I'l probably be using this to
+post about cute little code side-projects I work on mostly, but who knows where
+time will take me. For now, a little article on how I set up the site itself.</p>
+<h1>How I made this Webpage</h1>
+<p>When I set out to make a website, I had two big requirements:</p>
+<ul>
+<li>It must not be permanently tied to some third-party service I cannot control.</li>
+<li>It must be easy to use.</li>
+</ul>
+<p>Of course, the above two often conflict. Enter the awesome 'Pelican' tool:
+with it I can have my site generated locally on my PC, out of source files
+I create without any external service  requirements (And, of course, Pelican
+is open source too!). I will never be prey to the service I am based on
+shutting down or anything of that sort (I am posting this days after Parse
+announced their shutdown).</p>
+<p>On the other hand, I do need somewhere to host my code, and for that I chose
+AWS. It <strong>is</strong> a service out of my control, but I am not tied to it, my site
+is static HTML that lives on my own computer, and I can move it to theoreticaly
+any hosting service.</p>
+<p>That out of the way, here's how I set up this whole operation:</p>
+<h2>Tools</h2>
+<p>First off, here's a listing of the tools I used for this:</p>
+<ul>
+<li><a href="http://blog.getpelican.com/">pelican</a></li>
+<li><a href="https://github.com/nairobilug/pelican-alchemy/tree/43f23f05b9adc0c6bf18d2f4ebd47771a7fe8f4a">alchemy theme</a></li>
+<li><a href="http://aws.amazon.com">aws</a></li>
+<li><a href="https://letsencrypt.org/">letsencrypt</a></li>
+<li><a href="https://github.com/dlapiduz/letsencrypt-s3front">this letsencrypt plugin</a></li>
+</ul>
+<h2>Setting up Pelican with S3</h2>
+<p>This was very straightforward, I followed
+<a href="http://lexual.com/blog/setup-pelican-blog-on-s3/">this</a> guide and it worked
+the first time. Though note, the <code>pelican-quickstart</code> command doesn't*
+appear to have defaults for every option, I didn't know what my domain was
+going to be at the time, but it turns out changing these values after is super
+easy, just look in the generated <code>pelicanconf.py</code> and <code>publishconf.py</code>.</p>
+<p>I didn't actualy start making content pages (or rather, this content page)
+until I had completed all the other steps and was happy with my setup, but
+that was also straightforward. I am using Markdown as described
+<a href="http://docs.getpelican.com/en/3.6.3/quickstart.html">here</a>.</p>
+<h2>Configuring the website</h2>
+<p>This step was just as straightforward as the first part, but more time
+consuming, largely due to me guessing for myself what to do until just
+deciding to follow Amazon's tutorial
+<a href="http://docs.aws.amazon.com/gettingstarted/latest/swh/website-hosting-intro.html">here</a>.
+I already made the buckets in the first step, and in retrospect may have done
+this out of order. A big part of this step is waiting for DNS to propogate,
+and waiting for Cloudfront to start up. I don't think I need the speed of a
+CDN for such a small site, but Cloudfront is required to use HTTPS in this
+setup, as desribed in the next step.</p>
+<h2>Setting Up Letsencrypt</h2>
+<p>This part was not hard, but did require a bit of fiddling. I already had found
+the afformentioned plugin when I started this step, so all there was to do was
+use it. I copied the snippet from the readme into an <code>update_cert.sh</code> and
+filled in my AWS credentials (I put this in a <strong>seperate</strong> folder from the main
+website to avoid putting credentials in my git repository).</p>
+<p>When I ran the script there were still a few issues first I had to update some
+modules from pip, <code>pip install --upgrade letsencrypt</code> accomplished that easily.
+Secondly, the AWS user that the credentials were tied too was setup wrong, a
+bit of fiddling revealed it needs the following:</p>
+<ul>
+<li>Access to the S3 bucket the website is in</li>
+<li>Access to Cloudfront's configuration</li>
+<li>The following policy for uploading certificates:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="s2">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">              </span><span class="s2">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<span class="w">              </span><span class="s2">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                  </span><span class="s2">&quot;iam:UploadServerCertificate&quot;</span>
+<span class="w">              </span><span class="p">],</span>
+<span class="w">              </span><span class="s2">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+</code></pre></div>
+
+<h1>Looking Forward</h1>
+<p>While setting up this website took time, it wasn't all that hard for something
+that is so custom. And actualy writing this content page was a breeze! In the
+future I may look at some more pelican plugins (the IPython notebook one looks
+primising). I'l probably also be adding some more general purpose pages in
+addition to the blog. I also <em>might</em> look at running a Flask server on an AWS
+micro instance if I have the need for a small dynamic server.</p>
+<p>All said, I'm glad I finally got around to making this, now to work on some
+real content!</p>
+    </div>
+  </div>
+  <hr class="separator">
+  <div class="col-md-8 col-md-offset-2">
+  <div id="disqus_thread">
+    <script>
+      var disqus_shortname = 'zchfvy';
+      (function() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+         document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>
+      Please enable JavaScript to view the
+      <a href="https://disqus.com/?ref_noscript=zchfvy">
+        comments powered by Disqus.
+      </a>
+    </noscript>
+    <a href="https://disqus.com" class="dsq-brlink">
+      blog comments powered by <span class="logo-disqus">Disqus</span>
+    </a>
+  </div>
+  </div>
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="text-center">
+      Jason Hamilton-Smith, <a href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative Commons Attribution-ShareAlike 4.0 International License.</a> unless otherwise noted.
+    </p>
+    <div class="text-center">
+      Generated by <a href="http://getpelican.com" target="_blank">Pelican</a> with a <a href="https://github.com/jason-hs/pelican-alchemy">modified version</a> of the <a href="http://github.com/nairobilug/pelican-alchemy">alchemy</a> theme.
+    </div>
+  </div>
+</footer> <!-- /.footer -->
+  <script src="https://zchfvy.com/theme/js/jquery.min.js"></script>
+  <script src="https://zchfvy.com/theme/js/bootstrap.min.js"></script>
+</body> <!-- 42 -->
+
+</html>

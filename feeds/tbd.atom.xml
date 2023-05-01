@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Zchfvy - TBD</title><link href="https://zchfvy.com/" rel="alternate"></link><link href="https://zchfvy.com/feeds/tbd.atom.xml" rel="self"></link><id>https://zchfvy.com/</id><updated>2023-03-30T00:28:00-07:00</updated><entry><title>Victoria 3 Game Scraping</title><link href="https://zchfvy.com/vic3analyzer.html" rel="alternate"></link><published>2023-03-30T00:28:00-07:00</published><updated>2023-03-30T00:28:00-07:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2023-03-30:/vic3analyzer.html</id><summary type="html">&lt;p&gt;A tool to strip data from a game and compile a database&lt;/p&gt;</summary><content type="html">&lt;h1&gt;The Game/ The Problem&lt;/h1&gt;
+&lt;h1&gt;Initial Approach&lt;/h1&gt;
+&lt;p&gt;Continue from ck3 project
+Process games directly in one thread
+Alchemy for DB&lt;/p&gt;
+&lt;h1&gt;Big Problems&lt;/h1&gt;
+&lt;p&gt;oom system lockup
+resource utilization
+Need to do all in one&lt;/p&gt;
+&lt;h1&gt;Re-attempt as seperate processes collect/process&lt;/h1&gt;
+&lt;p&gt;Still too slow
+End up using 3p tool to scrape replays instead of lark
+bla&lt;/p&gt;
+&lt;h1&gt;Fonal Lesson, using GNU coreutils&lt;/h1&gt;
+&lt;p&gt;GNU parallel is good&lt;/p&gt;</content><category term="TBD"></category><category term="gaming"></category><category term="automation"></category></entry></feed>

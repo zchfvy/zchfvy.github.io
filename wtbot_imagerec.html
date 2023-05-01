@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+      <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="https://zchfvy.com/wtbot_imagerec.html" />
+
+    <title>  Zchfvy &mdash; War Thunder Bot : Image Recognition
+</title>
+
+      <link rel="icon" type="image/png" href="/favicon-196x196.png" sizes="196x196">
+      <link rel="icon" type="image/png" href="/favicon-160x160.png" sizes="160x160">
+      <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+      <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+      <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+
+
+      <link type="application/atom+xml" rel="alternate" href="/feeds/all.atom.xml"  title="Zchfvy Atom Feed">
+
+    <link rel="stylesheet" href="https://zchfvy.com/theme/css/style.css">
+    <link rel="stylesheet" href="https://zchfvy.com/theme/css/style_extra.css">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-73227889-1', 'auto');
+    ga('send', 'pageview');
+
+  </script>
+
+    <meta name="author" content="Jason Hamilton-Smith">
+    <meta name="description" content="Reading the glass cockpit from War Thunder and turning it into data.">
+  <meta name="tags" contents="warthunder, python, ">
+</head>
+
+<body>
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <h1 class="header-name">
+        <a class="nodec" href="https://zchfvy.com">Zchfvy</a>
+      </h1>
+      <h3 class="header-text"></h3>
+      <ul class="header-menu list-inline">
+          <li><a class="nodec icon-mail-alt" href="mailto:hs.jason@gmail.com"></a></li>
+          <li><a class="nodec icon-github" href="https://github.com/jason-hs"></a></li>
+          <li><a class="nodec icon-twitter" href="https://twitter.com/jason_hs"></a></li>
+          <li><a class="nodec icon-rss" href="/feeds/all.atom.xml"></a></li>
+      </ul>
+    </div>
+  </div>
+</header> <!-- /.header -->  <div class="container">
+  <div class="post full-post">
+    <h1 class="post-title">
+      <a href="/wtbot_imagerec.html" title="Permalink to War Thunder Bot : Image Recognition">War Thunder Bot : Image Recognition</a>
+    </h1>
+    <ul class="list-inline">
+      <li class="post-date">
+        <a class="text-muted" href="/wtbot_imagerec.html" title="2016-02-14T00:23:00-08:00">Sun 14 February 2016</a>
+      </li>
+      <li class="muted">&middot;</li>
+      <li class="post-category">
+        <a href="https://zchfvy.com/category/misc.html">Misc</a>
+      </li>
+        <li class="muted">&middot;</li>
+        <li>
+            <a href="/tag/warthunder.html">warthunder</a>,             <a href="/tag/python.html">python</a>        </li>
+    </ul>
+    <div class="post-content">
+      <p>Welcome to part 2 of my War Thunder bot series, If you missed it, the intro
+to the project is in <a href="/wtbot_intro.html">Part 1</a>.</p>
+<p>In this part I will go over the techniques used to extract information about
+the planes current state from the HUD instruments in the "glass cockpit" view.
+I will be using  the <a href="http://opencv.org/">OpenCV</a> libraries to do this,
+specifically <a href="https://opencv-python-tutroals.readthedocs.org/en/latest/">OpenCV-Python</a>.</p>
+<h1>Overview</h1>
+<p>First, let's take a look at the War Thunder "glass cockpit" as it appears
+in-game.</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/screenshot.png"><figcaption>The War Thunder glass cockpit view</figcaption>
+</figure>
+</p>
+<p>There are three basic sets of instruments here that I want to draw data
+from, they are:</p>
+<ul>
+<li>The <a href="https://en.wikipedia.org/wiki/Attitude_indicator">attitude indicator</a>
+  in the middle of the screen.</li>
+<li>The compass at the top-center of the screen.</li>
+<li>The instruments panel in the top-left of the screen.</li>
+</ul>
+<p>I want to gather information from all of these. Specifically I need the
+aircrafts orientation, speed, and altitude. Things like oil temperature aren't
+useful to the bot's intended purpose (though I will be grabbing them anyways
+as it isn't much more work).</p>
+<h1>Preprocessing</h1>
+<p>Before I can start extracting data the image needs to be processed to make
+it easier for the computer to read. Right now the HUD elements are white on
+light blue, hard to see even for a human. Also, the image will look different
+when the bot is facing a darker or lighter part of the sky, I want to eliminate
+that variation. Finally, an image reduced to just the two possibilities of
+black and white is much simpler to analyze.</p>
+<p>The first step in this process is doing away with color (which provides no
+information in this context) and turning the image to grayscale, there is
+nothing fancy about how this works and everyone has seen it many times before.</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/gray.png"><figcaption>Converted to grayscale</figcaption>
+</figure>
+</p>
+<h2>CLAHE</h2>
+<p>Next I am going to do a contrast adjustment. To do this I will use the
+<b>C</b>ontrast <b>L</b>imited <b>A</b>daptive <b>H</b>istogram
+<b>E</b>qualization algorithm, or 
+<a href="https://en.wikipedia.org/wiki/Adaptive_histogram_equalization">CLAHE</a>.
+The Wikipedia article is a little verbose, but if you ever used the
+"Auto levels" function in Photoshop it's kind of like that, except it's applied
+individually to different areas of the image instead of once over the whole
+image. If you still can't understand that, or have just never used Photoshop
+before, then perhaps this image of the result will help:</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/clahe.png"><figcaption>CLAHE applied</figcaption>
+</figure>
+</p>
+<p>As you can see, this has greatly increased contrast. All the HUD elements
+are now much clearer, and even the "E" (indicating east) near the top of the
+image stands out quite well, it was previously nearly invisible against the
+sun.</p>
+<p>Before the next step, I quadruple the size of the image, scaling it to 2x
+across both dimensions. My trial-and-error testing found that this made the
+next step work much better.</p>
+<h2>Thresholding</h2>
+<p>The next step itself, involves applying an adaptive Gaussian thresholding
+algorithm (no fancy acronym this time!). This is a little more complex than
+the CLAHE algorithm, but even if the textual description is confusing the
+picture should provide a good image of what's going on (pun intended).</p>
+<p>The basic idea of thresholding is that you take all pixels in an image brighter
+than a certain value and make them white, and all pixels darker than that value
+are made black. Theoretically this should give you a nice cut-out of all
+the elements you are looking for, because they are much brighter or darker
+than the background. In practice, however, this only works for the most basic
+of cases, and even then is often a poor fit.</p>
+<p>This is where the "Adaptive Gaussian" part comes into play. Like with the
+CLAHE algorithm I am going to apply the threshold individually to different
+areas of the image, selecting an appropriate threshold based on the brightness
+of the surrounding pixels, thats the "adaptive" part. The Gaussian part means
+that the surrounding pixels contribution to the threshold is weighted on a bell
+curve, with the nearer pixels having more weight than ones further away.</p>
+<p>If my description was inadiqute, the
+<a href="http://docs.opencv.org/master/d7/d4d/tutorial_py_thresholding.html#gsc.tab=0">OpenCV Page</a>
+on this provides some good examples (look at the soduku puzzle).</p>
+<p>The result (with the 2x scaling) is this ugly monstrosity:</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/threshold.png"><figcaption>Thresholded image</figcaption>
+</figure>
+</p>
+<p>While it may not be nice to look at, it does provide a very consistent and high
+contrast image, all the things I am looking for stand out and are very
+distinct.  And, it's pure black and white, no greys, all ready for analysis.</p>
+<h1>Attitude and Heading</h1>
+<p>With the image now pre-processed, it's time to take some data from it. I
+should mention here however, that the above steps do not take place over
+the whole screen as in the screenshots, instead this is only run over the
+small space surrounding the elements the bot is interested in. This speeds up
+the analysis significantly.</p>
+<p>In-game the attitude indicator and compass actually slide around as you do sharp
+maneuvers, but this bot should not be doing any fancy-stunt flying so I
+have provided just a small margin beyond the spaces I am looking in to account
+for small movements.</p>
+<h2>Template Matching</h2>
+<p>The basic idea behind reading attitude and heading relies on looking for the
+numbers and/or letters that indicate heading and locating them on the screen.
+To do this I use the <strong>template matching</strong> functionality of OpenCV. This
+allows me to give OpenCV an image of what I'm looking for and have it slide
+the image across the screen, analyzing how much it matches up with what's under
+it and giving me the results.</p>
+<p>In order to do this, I had to collect images to compare to, and since I am
+looking at a processed image they would also need to be processed the same way.
+Since I already had the code to do this, it wasn't difficult to make it just
+save a small segment of the result as an image (much harder was flying my
+plane at precisely all the requisite angles and headings to produce source
+data).</p>
+<p>The result was a directory full of images like this:</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/templates.png"><figcaption>My folder of template images</figcaption>
+</figure>
+</p>
+<p>Once I had these it was just a case of doing a bit of tuning to the minimum
+confidence cutoff, and a bit of code to eliminate cases where the same spot
+was detected twice.</p>
+<p>Now that I had the co-ordinates of these things, It was time to do something
+with them.</p>
+<h2>Getting Heading</h2>
+<p>I actually wrote the code for the heading detection last, though it is far
+simpler than attitude detection. Here is how it works:</p>
+<p>There's going to be a bit of math here, if that scares you, don't worry! I'm
+not going to go too deep into details, the specifics are uninteresting anyways.
+Most of what goes on in this section involves comparing the positions of the
+detected templates to known locations on the screen.</p>
+<p>The algorithm tries to find just one of the templates given to it, and compare
+it's position to the position at the center of the screen. At this point it
+knows a heading, and it knows how far away from it it is in terms of screen
+pixels. With the default settings I determined the ratio between screen pixels
+and degrees to be about 1/18. By multiplying the pixel offset by this ratio, 
+you get a degrees offset, which is then added to the heading the template
+represents.</p>
+<p>Perhaps a diagram will show it better.
+(Note, the screenshot shows a full color image, but the actual processing is
+happening on a pre-processed image)</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/heading.png"><figcaption>Heading detection</figcaption>
+</figure>
+</p>
+<p>The readout in the background is printing out the timestamp of the capture and
+the heading captured, separated by a comma. The green line in the diagram
+represents the offset from the template that was found. The result of 262.69 
+degrees is found by taking the length of the line, multiplying it by 1/18,
+and then adding it to 260 (The 26 indicates 260 degrees).</p>
+<h2>Getting Attitude</h2>
+<p>If you can understand that, attitude detection is not too much harder. For this
+I detect <strong>two</strong> templates and then draw a line between them. Then, from the
+midpoint of this line I draw upwards or downwards until I am lined up with
+the center of the screen (Or, more technically, I project the vector between
+the midpoint of the line and the center of the screen onto the vector normal
+to the line). Whatever description you followed, I am left with a line that
+I can use to do the exact same calculation as was done to detect heading.</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/attitude.png"><figcaption>Attitude detection</figcaption>
+</figure>
+</p>
+<p>In this diagram the light blue line is the one being measured. The dark blue
+line is the one drawn between the two detected templates. The output is in the
+same format, with timestamp and value. In this case taking the length of the
+light blue line, multiplying by 1/18 and subtracting from 20 degrees gives the
+result of 16.32 degrees.</p>
+<h1>The Instrument Panel</h1>
+<p>That's all and good for the analog instruments on the HUD, but those
+techniques won't work for the "digital" instruments in the top left, I would
+need a template for every possible readout!</p>
+<p>With that not possible, I turned to <b>O</b>ptical <b>C</b>haracter
+<b>R</b>ecognition, or <strong>OCR</strong>. OCR takes images of text, and turns them into
+plain text. The Tesseract OCR library/utility is suitable for my needs and has
+a python binding (kind of).</p>
+<h2>Pre-Processing... Again!</h2>
+<p>But, before I can use OCR on the image there's a bit more pre-processing I
+need to do to ensure best results. The output from thresholding gives us ugly
+outlined text, which produces some terrible results when naively run through
+tesseract.</p>
+<p>The processing solution, is fortunately simple, I just do a fill on the image.
+To hearken back to the Photoshop analogy, it's like the paint bucket tool. The fill
+is the same color as the outlines so they become hidden and all that's left is
+the insides of the text. I've also inverted the image to be black text on 
+white, instead of white text on black.</p>
+<h2>Tesseract</h2>
+<p>With the processing done I ran Tesseract against my image and observed the
+output. But even after the post processing, there were some issues...</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/garbled.png"><figcaption>This won't work</figcaption>
+</figure>
+</p>
+<p>This is hardly usable. I found it entertaining though that my altitude is
+503 watts, and my indicated airspeed has units that are the union of knots
+and hours, I guess that's still a speed since a union is analogous to
+a multiplication? (Or maybe disregard that last sentence, it was a bad
+attempt at a math joke).</p>
+<p>The solution to this, was as unintuitive as it is boring. I just cropped the
+image area to cut off the units, and voilà:</p>
+<p>
+<figure><img src="https://zchfvy.com/images/wtbot_imagerec/instruments.png"><figcaption>This will</figcaption>
+</figure>
+</p>
+<p>There are still a few issues, notably the "S" in "IAS" has been cut off
+completely by the second round of pr-processing. Also some recognitions
+are slightly off: "GNN" "HATER" and "BNSTRUCTOR", but this data is still
+very much workable.</p>
+<h1>Next Time</h1>
+<p>The data recovered from this isn't perfect. The instrument panel has obvious
+issues with not reading correctly sometimes. And the attitude and heading
+detection have some error in them, and sometimes they don't read at all
+(that is, they output "None").</p>
+<p>In the next section I will discuss filtering this data to clean up these
+issues and provide consistent and clean data to the bot.</p>
+    </div>
+  </div>
+  <hr class="separator">
+  <div class="col-md-8 col-md-offset-2">
+  <div id="disqus_thread">
+    <script>
+      var disqus_shortname = 'zchfvy';
+      (function() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+         document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>
+      Please enable JavaScript to view the
+      <a href="https://disqus.com/?ref_noscript=zchfvy">
+        comments powered by Disqus.
+      </a>
+    </noscript>
+    <a href="https://disqus.com" class="dsq-brlink">
+      blog comments powered by <span class="logo-disqus">Disqus</span>
+    </a>
+  </div>
+  </div>
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="text-center">
+      Jason Hamilton-Smith, <a href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative Commons Attribution-ShareAlike 4.0 International License.</a> unless otherwise noted.
+    </p>
+    <div class="text-center">
+      Generated by <a href="http://getpelican.com" target="_blank">Pelican</a> with a <a href="https://github.com/jason-hs/pelican-alchemy">modified version</a> of the <a href="http://github.com/nairobilug/pelican-alchemy">alchemy</a> theme.
+    </div>
+  </div>
+</footer> <!-- /.footer -->
+  <script src="https://zchfvy.com/theme/js/jquery.min.js"></script>
+  <script src="https://zchfvy.com/theme/js/bootstrap.min.js"></script>
+</body> <!-- 42 -->
+
+</html>

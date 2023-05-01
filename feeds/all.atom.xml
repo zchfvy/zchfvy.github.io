@@ -1,0 +1,813 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Zchfvy</title><link href="https://zchfvy.com/" rel="alternate"></link><link href="https://zchfvy.com/feeds/all.atom.xml" rel="self"></link><id>https://zchfvy.com/</id><updated>2023-03-30T00:28:00-07:00</updated><entry><title>Victoria 3 Game Scraping</title><link href="https://zchfvy.com/vic3analyzer.html" rel="alternate"></link><published>2023-03-30T00:28:00-07:00</published><updated>2023-03-30T00:28:00-07:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2023-03-30:/vic3analyzer.html</id><summary type="html">&lt;p&gt;A tool to strip data from a game and compile a database&lt;/p&gt;</summary><content type="html">&lt;h1&gt;The Game/ The Problem&lt;/h1&gt;
+&lt;h1&gt;Initial Approach&lt;/h1&gt;
+&lt;p&gt;Continue from ck3 project
+Process games directly in one thread
+Alchemy for DB&lt;/p&gt;
+&lt;h1&gt;Big Problems&lt;/h1&gt;
+&lt;p&gt;oom system lockup
+resource utilization
+Need to do all in one&lt;/p&gt;
+&lt;h1&gt;Re-attempt as seperate processes collect/process&lt;/h1&gt;
+&lt;p&gt;Still too slow
+End up using 3p tool to scrape replays instead of lark
+bla&lt;/p&gt;
+&lt;h1&gt;Fonal Lesson, using GNU coreutils&lt;/h1&gt;
+&lt;p&gt;GNU parallel is good&lt;/p&gt;</content><category term="TBD"></category><category term="gaming"></category><category term="automation"></category></entry><entry><title>ML-Agents in Unity: Making Armies Win!</title><link href="https://zchfvy.com/mlagents_2.html" rel="alternate"></link><published>2020-04-05T20:00:00-07:00</published><updated>2020-04-05T20:00:00-07:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2020-04-05:/mlagents_2.html</id><summary type="html">&lt;p&gt;Getting Started with the Unity ML-Agents package&lt;/p&gt;</summary><content type="html">&lt;p&gt;Welcome to Part II of my series on ML-Agents in Unity. In the last part I got a
+simple model working that allowed two armies of soldiers to fight each other,
+however, they weren't actually trying to &lt;em&gt;win&lt;/em&gt;. In this part, I will be working
+towards that goal.&lt;/p&gt;
+&lt;h1&gt;Adjusting Rewards&lt;/h1&gt;
+&lt;p&gt;In part I, I had been rewarding my agents for both being victorious and each
+time they dealt damage to the enemy. Eventually I removed the victory reward to
+simplify things and push the agents to get into combat. Now I tried adding
+victory rewards again to see what happens. I tried several variations on reward
+values, each with a different hit reward (That is, the reward for each
+individual attack that hits an enemy).  Below you can see the resulting scores,
+they are:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;No victory reward and 1.0 hit reward&lt;/li&gt;
+&lt;li&gt;1.0 victory reward and 0.3 hit reward&lt;/li&gt;
+&lt;li&gt;1.0 victory reward and 0.1 hit reward&lt;/li&gt;
+&lt;li&gt;1.0 victory reward and no hit reward&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_2/rewards_1.png"&gt;&lt;figcaption&gt;Rewards, from top to bottom these are in the same order as the above list&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;As you can see, the runs with a lower hit reward result in a lower peak total
+reward.  This is as-expected, since each hit is worth less the total reward is
+less. What's more interesting is that as I reduce the hit reward the
+convergence to the final reward takes longer, with the no-hit-reward version
+failing to increase at all. Furthermore, the agent behaviour is exactly the same
+as in article 1: they fight, but they don't try to win.&lt;/p&gt;
+&lt;p&gt;There are two possible reasons for this that crossed my mind at this point,
+either&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The way I am training the agents is unable to learn a wining strategy&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;or&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;There is no winning strategy&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In order to narrow down the problem, I made a modification here to ensure that a
+winning strategy exists. I made the following change: when a soldier is near
+another soldier they both benefit from mutual-defence, getting 50% resistance to
+damage for &lt;em&gt;each&lt;/em&gt; nearby soldier!  So if a soldier is near one ally it will only
+take 50% damage, and if near two allies it will take only 25% damage and so on.
+With this change there is now, obviously, a winning strategy: simply stick
+together in a blob.&lt;/p&gt;
+&lt;p&gt;So I did further training, to see if it learned now:&lt;/p&gt;
+&lt;p&gt;It didn't, what's wrong?&lt;/p&gt;
+&lt;h1&gt;Using Self-Play&lt;/h1&gt;
+&lt;p&gt;The issue is that when using reinforcement learning, training works by tring to
+maximize the average reward. Since all the soldiers are training the same model
+together it means that if one side gets an advantage it increases that side's
+score, but correspondingly decreases the other side's. In gambling terms
+it would be like putting an equal bet on each side: it's never gonna lose,
+but also never gonna win.&lt;/p&gt;
+&lt;p&gt;I need a way to make each side train independently, to do that each side needs
+to count its rewards separately. But I still want the agent to be able to play
+against itself so it gets better over time. So what I need to do is to train one
+team (red team) and then after each round copy its data to the other team (blue
+team).  The second (blue) team never actually trains it just receives copies
+from the red team, this way the blue team's reward doesn't affect the final
+outcome.&lt;/p&gt;
+&lt;p&gt;Even if I do this, there is still a problem of overfitting: the agent may become
+so focused on beating it's own strategies that it becomes unable to defeat more
+varied strategies. To ensure this doesn't happen rather than just copying the
+strategy that the agent played last round, I save the agent's data at various
+points throughout training and then chose a random one as the opponent to train
+against.&lt;/p&gt;
+&lt;p&gt;Now, that's all well and good, but it sounds like an awful lot of work,
+fortunately the same day I got to this point in the process Unity released a
+wonderful &lt;a href="https://blogs.unity3d.com/2020/02/28/training-intelligent-adversaries-using-self-play-with-ml-agents/?utm_source=twitter&amp;amp;utm_medium=social&amp;amp;utm_campaign=ml_global_generalpromo_2020-02-28_mlagents-self-play&amp;amp;utm_content=blog"&gt;blog article&lt;/a&gt;
+on self-play in ML-Agents, the detailed documentation is
+&lt;a href="https://github.com/Unity-Technologies/ml-agents/blob/422bbcd3d4e82dae6acc3b12e189f257d160eaa7/docs/Training-Self-Play.md"&gt;here&lt;/a&gt;.
+With that in mind, I got started.&lt;/p&gt;
+&lt;p&gt;First I needed to make a lot of changes involving upgrading ML-Agents to the
+latest version, this involved:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Upgrade ml-agents to 0.14.1&lt;/li&gt;
+&lt;li&gt;Upgrade baracuda to 0.5.0&lt;/li&gt;
+&lt;li&gt;Delete my Academy class (They are now singletons, and I wasn't really using
+  it)&lt;/li&gt;
+&lt;li&gt;Add a &lt;code&gt;DecisionRequestor&lt;/code&gt; component to my agent to allow it to self-update
+  (It doesn't do that by default anymore) &lt;/li&gt;
+&lt;li&gt;Take note of the fact that a 'step' in the tensorboard output is now just a
+  single step for a single agent in the scene, before a step included one step
+  for &lt;em&gt;each&lt;/em&gt; agent in the scene, so I must increase my max-steps accordingly,
+  since I have 10 agents in the scene I am going from 500,000 steps to
+  5,000,000 steps.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I also got rid of the team-shuffling from the first article, it again, wasn't
+really used.&lt;/p&gt;
+&lt;p&gt;Now, that simply upgrades to the new ML-agents, to make use of the self-play
+feature I must:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Set the agent's &lt;code&gt;Team ID&lt;/code&gt; variable correctly&lt;/li&gt;
+&lt;li&gt;Add a 'loss' condition with a -1 reward (Just best practice, not strictly
+  required)&lt;/li&gt;
+&lt;li&gt;Add a self-play block to my hyperparameter configuration&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The self-play block is as-follows:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nt"&gt;self_play&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="nt"&gt;window&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l l-Scalar l-Scalar-Plain"&gt;10&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="nt"&gt;play_against_current_self_ratio&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l l-Scalar l-Scalar-Plain"&gt;0.5&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="nt"&gt;save_steps&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l l-Scalar l-Scalar-Plain"&gt;50000&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="nt"&gt;swap_steps&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l l-Scalar l-Scalar-Plain"&gt;50000&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;With all that done it's time to go ahead and train this.&lt;/p&gt;
+&lt;h1&gt;Self-play results&lt;/h1&gt;
+&lt;p&gt;Unfortunately, training didn't initially go as planned, the first run gave me
+this same senselessly aggressive behaviour as before:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;video controls src="https://zchfvy.com/images/mlagents_2/soldiers_II_3.mp4"&gt;&lt;/video&gt;&lt;figcaption&gt;Same agressive behaviour as at the end of the last article I wrote&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;After running this I went through a series of practical issues (bugs) including:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Forgetting to actually save the file with the self-play block above&lt;/li&gt;
+&lt;li&gt;Not setting the rewards correctly&lt;/li&gt;
+&lt;li&gt;Not actually calling the agent's "Done" function on winning agents (And I was
+  doing this in part I too, blind luck that it worked at all!)&lt;/li&gt;
+&lt;li&gt;Not having an acceptable maximum length of each round (The early rounds
+  sometimes took a very long time, which was wasteful)&lt;/li&gt;
+&lt;li&gt;Incorrectly handling updates on 'dead' agents&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Each time I went through one of these issues (Of which there are more than the
+above) it involved a many-hour long training run. Slowly, I managed to get
+behaviour that converged towards a type of "Spiralling tactic". I didn't notice
+it so much in the earlier runs, but after an 5.5 hour run it became clear that
+this behaviour was emerging. This was &lt;em&gt;really&lt;/em&gt; interesting to me because it's
+clear the AI was learning &lt;em&gt;something&lt;/em&gt;, but also something I didn't expect and
+cannot explain. Unexpected emergent behaviour is one of the coolest things to
+see in AI so I was really excited.&lt;/p&gt;
+&lt;p&gt;Since I now knew that the AI was actually learning I went back to my simulation
+parameters and increased the radius in which having an ally reduces damage
+taken. Since it was getting late I let this train overnight, and when I woke up
+it had trained for eighteen hours and resulted in this:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;video controls src="https://zchfvy.com/images/mlagents_2/14.1_selfplay_forreal_9.mp4"&gt;&lt;/video&gt;&lt;figcaption&gt;There's some "spiralling" tactic going on here, but not the "clumping" I was looking for.&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;Beautiful! But about the time it took to train... 18 hours might be acceptable
+for overnight training of a fancy production model, it might even be okay for a
+in-development model that is well-understood, but for just messing around trying
+to figure things out like what I'm doing here it's far too long. Fortunately,
+there was a simple way to accelerate this.&lt;/p&gt;
+&lt;p&gt;By switching to running standalone builds rather than running inside the Unity
+editor, I was able to run at 3x the time acceleration and also run 8 instances
+of the training at once. Theoretically that should be 3x8=24x faster! In
+practice though it was only 6x faster (At some point I ought to go back and
+optimize this) though this is still good enough for me! This cut my previous
+18hr run (Which effectively limited me to one run/day) to a mere 3 hours (Which
+can be done 3-4 times a day). Also, since I can now practicly run this in
+daylight hours rather than overnight I can now early abort if I notice it's
+failing early on, allowing me even more time to iterate.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_2/bintrain.png"&gt;&lt;figcaption&gt;You can see the much faster training of the standalone build, horizontal axis is hours.&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;After things were running nice and faster, I did a few slight tweaks. I
+didn't like how the soldier's were acting overly defensive, even when they had a
+big advantage (3 on 1 or so). I speculated this was because they only had
+information on where enemies are, and not a clear picture of how many enemies
+there are. To resolve this I added the following observations:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;My agent's own health&lt;/li&gt;
+&lt;li&gt;How many allies are alive&lt;/li&gt;
+&lt;li&gt;The average health of my allies&lt;/li&gt;
+&lt;li&gt;How many enemies are alive&lt;/li&gt;
+&lt;li&gt;The average health of my enemies.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;With this in place, another run of 3 hours got me to this result:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;video controls src="https://zchfvy.com/images/mlagents_2/bintrain_4_worldinfo.mp4"&gt;&lt;/video&gt;&lt;figcaption&gt;Soldiers now group together for mutual defence!&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;As you can see, they have the behaviour I was looking for, and when one side
+gains an obvious advantage they go in for the kill&lt;/p&gt;
+&lt;p&gt;With that at this point I'm kinda happy with it for the time being. And since I
+have iterated over the codebase of this quite a few times in this process it has
+become kinda messy. I'm gonna put this aside for now and try to work on another
+problem for my next article!&lt;/p&gt;
+&lt;p&gt;Thanks for reading!&lt;/p&gt;</content><category term="Misc"></category><category term="unity"></category><category term="ml-agents"></category><category term="machine learning"></category></entry><entry><title>ML-Agents in Unity: Making Armies Fight</title><link href="https://zchfvy.com/mlagents_1.html" rel="alternate"></link><published>2020-03-01T00:15:00-08:00</published><updated>2020-03-01T00:15:00-08:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2020-03-01:/mlagents_1.html</id><summary type="html">&lt;p&gt;Getting Started with the Unity ML-Agents package&lt;/p&gt;</summary><content type="html">&lt;p&gt;Welcome to Part I of my series on ML-Agents in unity. In this article, I will
+give a brief overview of ML-Agents, and then talk about setting up a very simple
+learning environment and getting ML-Agents to successfully train a simple model.&lt;/p&gt;
+&lt;h1&gt;Overview of ML-Agents&lt;/h1&gt;
+&lt;p&gt;&lt;a href="https://github.com/Unity-Technologies/ml-agents"&gt;ML-Agents&lt;/a&gt; is a toolkit for
+unity provided by Unity Technologies for training reinforcement learning agents.
+Reinforcement learning is a machine learning process that trains a model by
+letting it loose in an environment and then giving it "rewards" when it behaves
+in the desired way.&lt;/p&gt;
+&lt;p&gt;ML-Agents' implementation of reinforcement learning involves building an
+"Agent" class. This class needs to contain code for:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Making observations about the world and feeding them into the inputs of an AI "brain"&lt;/li&gt;
+&lt;li&gt;Taking the outputs of the AI "brain" and using them to affect the world&lt;/li&gt;
+&lt;li&gt;Giving rewards to the AI "brain" whenever desired outcomes occur&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Once this is set up then the agent can be trained using a utility included in
+the ML-Agents package. As training proceeds, the agent will slowly learn how to
+behave in order to get the rewards. Once training is done the utility will save
+a model file, which describes the agent's behaviour at the end of the training.
+The model file can now be put back into Unity and the agent will behave in the
+desired way.&lt;/p&gt;
+&lt;h1&gt;The Learning Environment&lt;/h1&gt;
+&lt;p&gt;For this project I threw together a learning environment consisting of two teams
+with five soldiers each. Each soldier can be in one of five possible states:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;standing still&lt;/li&gt;
+&lt;li&gt;moving forwards&lt;/li&gt;
+&lt;li&gt;backing up&lt;/li&gt;
+&lt;li&gt;turning left&lt;/li&gt;
+&lt;li&gt;turning right&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The soldiers carry a spear, that automatically damages enemies when it comes in
+contact with them. After each attack there is a short cool down before the spear
+can be used again. Both the damage dealt and the cool down are randomized within
+a small range of values.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/soldier.png"&gt;&lt;figcaption&gt;Behold my basic 3D modelling skills&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;After setting up the soldiers, a few additional  things need to be added. The
+most important thing is a reset function that ensures everything will return to
+the same starting state. This is needed because to do a sufficient amount of
+training we must run and reset the world many times.&lt;/p&gt;
+&lt;h1&gt;Basic Setup of the Agent&lt;/h1&gt;
+&lt;p&gt;There are two basic functions that are part of the Agent class:&lt;/p&gt;
+&lt;p&gt;The first of them is the action function. The action function is responsible for
+taking the output of the AI Brain and affecting the world. In
+my case, I just want to select one of the possible soldier states I defined
+earlier, so a simple switch statement does the job:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="p"&gt;:::&lt;/span&gt;&lt;span class="n"&gt;C&lt;/span&gt;&lt;span class="c1"&gt;#&lt;/span&gt;
+&lt;span class="n"&gt;public&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;override&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nb nb-Type"&gt;void&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;AgentAction&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb nb-Type"&gt;float&lt;/span&gt;&lt;span class="p"&gt;[]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;vectorAction&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="k"&gt;var&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;selectedAction&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Mathf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FloorToInt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;vectorAction&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]);&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="n"&gt;switch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;selectedAction&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;case&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;MySoldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CurrentAction&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Soldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SoldierAction&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;None&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;case&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;MySoldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CurrentAction&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Soldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SoldierAction&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Forwards&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;case&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;MySoldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CurrentAction&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Soldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SoldierAction&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Backwards&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;case&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;MySoldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CurrentAction&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Soldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SoldierAction&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TurnLeft&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;case&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;MySoldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CurrentAction&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Soldier&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SoldierAction&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TurnRight&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In order for the brain to know it should output a number in the range 0-4 it
+must be configured in unity. In the following screenshot the &lt;code&gt;Branches
+Size&lt;/code&gt; of 1 indicates I only want one output in my vectorAction array, and a
+&lt;code&gt;Branch 0 Size&lt;/code&gt; of 5 indicates i want numbers in the 0-4 range:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/agentparams_1.png"&gt;&lt;figcaption&gt;Agent Parameters at this point&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;I also selected &lt;code&gt;Discrete&lt;/code&gt; space type because I am interested in making a
+selection (of states). &lt;code&gt;Continuous&lt;/code&gt; space types are also very useful, but not
+for my particular case. Choosing the AgentAction has some bearing with designing
+an agent that will train nicely, but often it's highly constrained by the
+problem.&lt;/p&gt;
+&lt;p&gt;The second important basic setup function is the Heuristic. This one is strictly
+optional, but in my earlier escapades with ML-Agents I chose not to implement it
+and paid the price. The heuristic simply allows you to write some conventional
+logic and have it pass-through the AgentAction function to affect the world.
+This is very useful for testing your code in a controlled way. In this instance
+I setup my heuristic to map keyboard inputs to the five states and immediately
+discovered I had inverted my left and right turning directions. Once training is
+begun the agent's behaviour is very chaotic, spotting such a thing would be
+nearly impossible!&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;video controls src="https://zchfvy.com/images/mlagents_1/testdrive.mp4"&gt;&lt;/video&gt;&lt;figcaption&gt;Can you tell if this is with inverted turning or not?&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;Implementing the heuristic can be done in many ways. The aforementioned mapping
+to keyboard inputs is a common and useful pattern. In my case I also implemented
+a "do-nothing" path in the heuristic which was selected by an enum, this allowed
+me to move one agent with the keyboard while the others stayed still. Another
+useful pattern when possible is to implement a very simple scripted AI, this
+isn't always possible but when it is it can give you confidence in your training
+environment.&lt;/p&gt;
+&lt;h1&gt;Observations and Rewards&lt;/h1&gt;
+&lt;p&gt;The first big decision you will need to make for your agent is how it will
+perceive the world, this all goes into the CollectObservation function. As for
+the design of this function, there are a great many things you can collect as
+observation, in my case I collected a bit of the soldier's state and some
+ray-traces of the world around them. The soldier's state includes&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The soldier's X Position in the world&lt;/li&gt;
+&lt;li&gt;The soldier's Z Position in the world&lt;/li&gt;
+&lt;li&gt;The soldier's rotation&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;And for each of the (equally spaced) traces around the soldier I collected&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The distance of the ray-trace&lt;/li&gt;
+&lt;li&gt;If it hit a soldier (1.0 if it did, or else 0.0)&lt;/li&gt;
+&lt;li&gt;If it hit an &lt;em&gt;enemy&lt;/em&gt; soldier (1.0 if it did, or else 0.0)&lt;/li&gt;
+&lt;li&gt;The rotation of any soldier it hit (Or else 0.0)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;When I initially set this up I chose to have 32 evenly spaced traces around the
+soldier, adding this all up (3 state values plus 32 * 4 ray-trace values) I got
+a total of 131 observations, and so had to set the input accordingly:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/traces.png"&gt;&lt;figcaption&gt;Traces around an agent; red are hitting an enemy, blue are hitting an ally,
+green are hitting nothing&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;The other big decision to make at this point is how to reward the agent. I chose
+to give a reward of 1.0 to each agent on the winning side, and a reward of 0.1
+each time an agent deals damage. This is a very simple reward structure, but
+generally rewards should be as few as needed to guide the agent to completing
+it's task.&lt;/p&gt;
+&lt;h1&gt;Hyperparameters and Training&lt;/h1&gt;
+&lt;p&gt;With all that done there is only one more thing to do before training, and
+that's setting the agent hyperparameters.  In this article I'm using the term
+hyperparameters to refer only to those defined in the ML-Agents YAML config
+file. Technically many of the things you write in code are also considered
+hyperparameters, such as your rewards and how you collect observations.&lt;/p&gt;
+&lt;p&gt;For my case it was fine to skip configuring hyperparameters and just use the
+defaults. Setting up hyperparameters is a tricky thing that requires patience
+and experience (which I do not have!). I may cover it in more detail in a future
+article. For now though, the defaults served me fine.&lt;/p&gt;
+&lt;p&gt;Initial training however, did not serve me fine. There's a tool (which ships
+with ML-Agents) called tensorboard, and it's what produced this nice graph of
+the agent not learning much at all over 15 minutes of training. While 15 minutes
+is not a very long time to train, I expected to see at least &lt;em&gt;some&lt;/em&gt; positive
+movement. Since nothing seemed to be happening I canceled training here to make
+some adjustments.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/training_1.png"&gt;&lt;figcaption&gt;15 minutes of training; x-axis indicates steps, y-axis indicates reward&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;So I went back and made some adjustments to help out. First I increased the
+frequency the agent makes decisions (&lt;code&gt;Decision Interval&lt;/code&gt;) from once a frame to
+once per ten frames. Besides having a noticeable performance benefit (and
+thereby allowing me to train at higher time acceleration) this also makes the
+problem easier to be trained train by reducing the number of decisions needed in
+one "battle" and mostly eliminating suboptimal decisions (If we start doing one
+thing, immediately changing our mind the next frame is probably not
+super-useful)&lt;/p&gt;
+&lt;p&gt;The next change I made was reducing the number of traces from 32 to 12. Again
+this gave a bit of a performance increase, and it also simplified the neural
+networks within the agent. One other important thing it did: remember how I said
+the default hyperparameters were fine? I lied! Before there were more input
+nodes than there were nodes on the hidden layers of the neural network, this is
+generally a bad thing and should be avoided. After reducing the number of inputs
+&lt;em&gt;now&lt;/em&gt; the default hyperparameters were fine!&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/agentparams_2.png"&gt;&lt;figcaption&gt;Agent Parameters at this point&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;Finally, I tweaked the rewards a little bit, at this stage I was not so much
+interested in the soldiers developing tactics to win the battle (though that's
+definitely very cool and is my longer term goal) but I just wanted them to get
+in there and duke it out. To this end I increased the "Dealing Damage" reward to
+1.0 and removed the victory reward entirely.&lt;/p&gt;
+&lt;h1&gt;Revision and Results&lt;/h1&gt;
+&lt;p&gt;So I trained that agent for 500,000 steps which took 3.5 hours on my machine.
+This time the agent actually learned... well whatever this is:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;video controls src="https://zchfvy.com/images/mlagents_1/action_3.mp4"&gt;&lt;/video&gt;&lt;figcaption&gt;These guys are kinda dumb&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;As you can see, the red team "kind of" knows how to advance, and then they have
+an idea of flailing around hoping to kill something. The blue team is hopeless,
+they just turn their back on the enemy and refuse to fight (Pacifists!).
+Considering this took 3.5 hours things don't look very successful so far, but
+this can be done better.&lt;/p&gt;
+&lt;p&gt;Up until this point I had been making the traces around my agent starting from
+the global +Z direction and then going around clockwise. Instead I wanted to
+change this so the traces start at the agent's &lt;em&gt;local&lt;/em&gt; +Z and rotate as the
+agent rotates. This way, an input that points to the agent's right will always
+point to &lt;em&gt;it's&lt;/em&gt; right no matter which way it turns.
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/trace_indexing.png"&gt;&lt;figcaption&gt;The 'old' method is on the left: trace #1 faces "north" and the others
+proceed clockwise around the soldier. The 'new' method is on the right: trace #1 is "in front" of the agent and the others proceed again clockwise&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;So I trained again, I let it run an hour and a half but after 15 minutes
+training had plateaued.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/mlagents_1/training_5.png"&gt;&lt;figcaption&gt;Pink is with these changes, orange is the previous 3.5 hour run&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;That's pretty great! In just 15 minutes it already learned to get more rewards
+on average than the old method did in 3.5 hours. It was plateauing; which means
+either it's successfully trained or it got stuck. There's only one way to find
+out which one, and that's to watch it in action:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;video controls src="https://zchfvy.com/images/mlagents_1/action_5.mp4"&gt;&lt;/video&gt;&lt;figcaption&gt;Much better than last time&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;Pretty cool! I made a few adjustments after this, but this article is already
+getting a bit long so I'll leave those for another time. If you have any
+questions please leave a comment, you can also find me
+&lt;a href="https://twitter.com/zchfvy"&gt;@zchfvy&lt;/a&gt; on twitter!&lt;/p&gt;</content><category term="Misc"></category><category term="unity"></category><category term="ml-agents"></category><category term="machine learning"></category></entry><entry><title>The wonders of certbot</title><link href="https://zchfvy.com/certbot.html" rel="alternate"></link><published>2019-01-29T22:56:00-08:00</published><updated>2019-01-29T22:56:00-08:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2019-01-29:/certbot.html</id><summary type="html">&lt;p&gt;Dealing with reinstalling certbot, AKA I have no idea what I'm doing.&lt;/p&gt;</summary><content type="html">&lt;p&gt;Through the past three years, despite me not updating this blog, I did keep
+updating the site's certificate just to keep it running. A couple months back I
+suffered a hard drive failure, and now that the certificate is expiring again I
+was faced with the prospect of re-installing certbot.&lt;/p&gt;
+&lt;p&gt;For me, at least, certbot/letsencrypt has been a constant battle. Every 3 months
+I need to remember the arcane sequence of commands, which virtualenvs I had
+things installed in, and the like. But for the most part a series of scripts
+kept it manageable. But reinstalling certbot, along with the plugin I needed to
+use, was another ordeal entirely.&lt;/p&gt;
+&lt;p&gt;The first issue was that certbot is currently designed to run on the same
+web-server that it is providing certificates for, which is not an option with a
+site hosted on an S3 bucket like mine. The alternative was a tool called
+'certbot-auto' available
+&lt;a href="https://certbot.eff.org/docs/install.html#installing-from-source"&gt;here&lt;/a&gt; that
+behaved... kind-of like the old certbot.  Finding out how to install it (3
+options, the link above, with apt, or with pip) took a fair bit of
+experimenting, and then where to install it (virtualenv) took a fair bit more;
+and that goes double for the plugin 'certbot-s3front' mentioned in my first blog
+post.&lt;/p&gt;
+&lt;p&gt;At the end, it turns out the linked utility should be run directly, and the
+plugin then needs to be installed in a special virtualenv located in
+/opt/eff.org/certbot/venv, owned by root. So I needed to first run the following&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;sudo -i
+source /opt/eff.org/certbot/venv/bin/activate
+pip install certbot-s3front
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;And only then did things work as described in my first post.&lt;/p&gt;
+&lt;p&gt;Well... nearly. It turns out that in addition to doing things in a special
+virtualenv certbot-auto also does things with a "fresh" set of environment
+variables, so passing the AWS credentials via environment no-longer works. After
+fighting this too for a while I realized there was no simple solution, the
+plugin itself would need a new version to address this issue.&lt;/p&gt;
+&lt;p&gt;&lt;a href="https://github.com/zchfvy/certbot-s3front"&gt;So I made a new version.&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;And with that installed things finally worked... until N eed to update the certs
+again.&lt;/p&gt;
+&lt;p&gt;I also made a pull request to get merged it into the main repository, I don't
+fully know if it's necessary because I don't know if everything I did here is
+wrong anyways. Right now it's held up because it's failed on a Microsoft...
+thing, and also needs the approval of the maintainer of-course, but if that gets
+merged I'll update the article. Until then, here's to another 3 years!&lt;/p&gt;</content><category term="Misc"></category><category term="aws"></category><category term="website"></category><category term="certbot"></category></entry><entry><title>War Thunder Bot : Image Recognition</title><link href="https://zchfvy.com/wtbot_imagerec.html" rel="alternate"></link><published>2016-02-14T00:23:00-08:00</published><updated>2016-02-14T00:23:00-08:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2016-02-14:/wtbot_imagerec.html</id><summary type="html">&lt;p&gt;Reading the glass cockpit from War Thunder and turning it into data.&lt;/p&gt;</summary><content type="html">&lt;p&gt;Welcome to part 2 of my War Thunder bot series, If you missed it, the intro
+to the project is in &lt;a href="/wtbot_intro.html"&gt;Part 1&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;In this part I will go over the techniques used to extract information about
+the planes current state from the HUD instruments in the "glass cockpit" view.
+I will be using  the &lt;a href="http://opencv.org/"&gt;OpenCV&lt;/a&gt; libraries to do this,
+specifically &lt;a href="https://opencv-python-tutroals.readthedocs.org/en/latest/"&gt;OpenCV-Python&lt;/a&gt;.&lt;/p&gt;
+&lt;h1&gt;Overview&lt;/h1&gt;
+&lt;p&gt;First, let's take a look at the War Thunder "glass cockpit" as it appears
+in-game.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/screenshot.png"&gt;&lt;figcaption&gt;The War Thunder glass cockpit view&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;There are three basic sets of instruments here that I want to draw data
+from, they are:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The &lt;a href="https://en.wikipedia.org/wiki/Attitude_indicator"&gt;attitude indicator&lt;/a&gt;
+  in the middle of the screen.&lt;/li&gt;
+&lt;li&gt;The compass at the top-center of the screen.&lt;/li&gt;
+&lt;li&gt;The instruments panel in the top-left of the screen.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I want to gather information from all of these. Specifically I need the
+aircrafts orientation, speed, and altitude. Things like oil temperature aren't
+useful to the bot's intended purpose (though I will be grabbing them anyways
+as it isn't much more work).&lt;/p&gt;
+&lt;h1&gt;Preprocessing&lt;/h1&gt;
+&lt;p&gt;Before I can start extracting data the image needs to be processed to make
+it easier for the computer to read. Right now the HUD elements are white on
+light blue, hard to see even for a human. Also, the image will look different
+when the bot is facing a darker or lighter part of the sky, I want to eliminate
+that variation. Finally, an image reduced to just the two possibilities of
+black and white is much simpler to analyze.&lt;/p&gt;
+&lt;p&gt;The first step in this process is doing away with color (which provides no
+information in this context) and turning the image to grayscale, there is
+nothing fancy about how this works and everyone has seen it many times before.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/gray.png"&gt;&lt;figcaption&gt;Converted to grayscale&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;h2&gt;CLAHE&lt;/h2&gt;
+&lt;p&gt;Next I am going to do a contrast adjustment. To do this I will use the
+&lt;b&gt;C&lt;/b&gt;ontrast &lt;b&gt;L&lt;/b&gt;imited &lt;b&gt;A&lt;/b&gt;daptive &lt;b&gt;H&lt;/b&gt;istogram
+&lt;b&gt;E&lt;/b&gt;qualization algorithm, or 
+&lt;a href="https://en.wikipedia.org/wiki/Adaptive_histogram_equalization"&gt;CLAHE&lt;/a&gt;.
+The Wikipedia article is a little verbose, but if you ever used the
+"Auto levels" function in Photoshop it's kind of like that, except it's applied
+individually to different areas of the image instead of once over the whole
+image. If you still can't understand that, or have just never used Photoshop
+before, then perhaps this image of the result will help:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/clahe.png"&gt;&lt;figcaption&gt;CLAHE applied&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;As you can see, this has greatly increased contrast. All the HUD elements
+are now much clearer, and even the "E" (indicating east) near the top of the
+image stands out quite well, it was previously nearly invisible against the
+sun.&lt;/p&gt;
+&lt;p&gt;Before the next step, I quadruple the size of the image, scaling it to 2x
+across both dimensions. My trial-and-error testing found that this made the
+next step work much better.&lt;/p&gt;
+&lt;h2&gt;Thresholding&lt;/h2&gt;
+&lt;p&gt;The next step itself, involves applying an adaptive Gaussian thresholding
+algorithm (no fancy acronym this time!). This is a little more complex than
+the CLAHE algorithm, but even if the textual description is confusing the
+picture should provide a good image of what's going on (pun intended).&lt;/p&gt;
+&lt;p&gt;The basic idea of thresholding is that you take all pixels in an image brighter
+than a certain value and make them white, and all pixels darker than that value
+are made black. Theoretically this should give you a nice cut-out of all
+the elements you are looking for, because they are much brighter or darker
+than the background. In practice, however, this only works for the most basic
+of cases, and even then is often a poor fit.&lt;/p&gt;
+&lt;p&gt;This is where the "Adaptive Gaussian" part comes into play. Like with the
+CLAHE algorithm I am going to apply the threshold individually to different
+areas of the image, selecting an appropriate threshold based on the brightness
+of the surrounding pixels, thats the "adaptive" part. The Gaussian part means
+that the surrounding pixels contribution to the threshold is weighted on a bell
+curve, with the nearer pixels having more weight than ones further away.&lt;/p&gt;
+&lt;p&gt;If my description was inadiqute, the
+&lt;a href="http://docs.opencv.org/master/d7/d4d/tutorial_py_thresholding.html#gsc.tab=0"&gt;OpenCV Page&lt;/a&gt;
+on this provides some good examples (look at the soduku puzzle).&lt;/p&gt;
+&lt;p&gt;The result (with the 2x scaling) is this ugly monstrosity:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/threshold.png"&gt;&lt;figcaption&gt;Thresholded image&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;While it may not be nice to look at, it does provide a very consistent and high
+contrast image, all the things I am looking for stand out and are very
+distinct.  And, it's pure black and white, no greys, all ready for analysis.&lt;/p&gt;
+&lt;h1&gt;Attitude and Heading&lt;/h1&gt;
+&lt;p&gt;With the image now pre-processed, it's time to take some data from it. I
+should mention here however, that the above steps do not take place over
+the whole screen as in the screenshots, instead this is only run over the
+small space surrounding the elements the bot is interested in. This speeds up
+the analysis significantly.&lt;/p&gt;
+&lt;p&gt;In-game the attitude indicator and compass actually slide around as you do sharp
+maneuvers, but this bot should not be doing any fancy-stunt flying so I
+have provided just a small margin beyond the spaces I am looking in to account
+for small movements.&lt;/p&gt;
+&lt;h2&gt;Template Matching&lt;/h2&gt;
+&lt;p&gt;The basic idea behind reading attitude and heading relies on looking for the
+numbers and/or letters that indicate heading and locating them on the screen.
+To do this I use the &lt;strong&gt;template matching&lt;/strong&gt; functionality of OpenCV. This
+allows me to give OpenCV an image of what I'm looking for and have it slide
+the image across the screen, analyzing how much it matches up with what's under
+it and giving me the results.&lt;/p&gt;
+&lt;p&gt;In order to do this, I had to collect images to compare to, and since I am
+looking at a processed image they would also need to be processed the same way.
+Since I already had the code to do this, it wasn't difficult to make it just
+save a small segment of the result as an image (much harder was flying my
+plane at precisely all the requisite angles and headings to produce source
+data).&lt;/p&gt;
+&lt;p&gt;The result was a directory full of images like this:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/templates.png"&gt;&lt;figcaption&gt;My folder of template images&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;Once I had these it was just a case of doing a bit of tuning to the minimum
+confidence cutoff, and a bit of code to eliminate cases where the same spot
+was detected twice.&lt;/p&gt;
+&lt;p&gt;Now that I had the co-ordinates of these things, It was time to do something
+with them.&lt;/p&gt;
+&lt;h2&gt;Getting Heading&lt;/h2&gt;
+&lt;p&gt;I actually wrote the code for the heading detection last, though it is far
+simpler than attitude detection. Here is how it works:&lt;/p&gt;
+&lt;p&gt;There's going to be a bit of math here, if that scares you, don't worry! I'm
+not going to go too deep into details, the specifics are uninteresting anyways.
+Most of what goes on in this section involves comparing the positions of the
+detected templates to known locations on the screen.&lt;/p&gt;
+&lt;p&gt;The algorithm tries to find just one of the templates given to it, and compare
+it's position to the position at the center of the screen. At this point it
+knows a heading, and it knows how far away from it it is in terms of screen
+pixels. With the default settings I determined the ratio between screen pixels
+and degrees to be about 1/18. By multiplying the pixel offset by this ratio, 
+you get a degrees offset, which is then added to the heading the template
+represents.&lt;/p&gt;
+&lt;p&gt;Perhaps a diagram will show it better.
+(Note, the screenshot shows a full color image, but the actual processing is
+happening on a pre-processed image)&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/heading.png"&gt;&lt;figcaption&gt;Heading detection&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;The readout in the background is printing out the timestamp of the capture and
+the heading captured, separated by a comma. The green line in the diagram
+represents the offset from the template that was found. The result of 262.69 
+degrees is found by taking the length of the line, multiplying it by 1/18,
+and then adding it to 260 (The 26 indicates 260 degrees).&lt;/p&gt;
+&lt;h2&gt;Getting Attitude&lt;/h2&gt;
+&lt;p&gt;If you can understand that, attitude detection is not too much harder. For this
+I detect &lt;strong&gt;two&lt;/strong&gt; templates and then draw a line between them. Then, from the
+midpoint of this line I draw upwards or downwards until I am lined up with
+the center of the screen (Or, more technically, I project the vector between
+the midpoint of the line and the center of the screen onto the vector normal
+to the line). Whatever description you followed, I am left with a line that
+I can use to do the exact same calculation as was done to detect heading.&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/attitude.png"&gt;&lt;figcaption&gt;Attitude detection&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;In this diagram the light blue line is the one being measured. The dark blue
+line is the one drawn between the two detected templates. The output is in the
+same format, with timestamp and value. In this case taking the length of the
+light blue line, multiplying by 1/18 and subtracting from 20 degrees gives the
+result of 16.32 degrees.&lt;/p&gt;
+&lt;h1&gt;The Instrument Panel&lt;/h1&gt;
+&lt;p&gt;That's all and good for the analog instruments on the HUD, but those
+techniques won't work for the "digital" instruments in the top left, I would
+need a template for every possible readout!&lt;/p&gt;
+&lt;p&gt;With that not possible, I turned to &lt;b&gt;O&lt;/b&gt;ptical &lt;b&gt;C&lt;/b&gt;haracter
+&lt;b&gt;R&lt;/b&gt;ecognition, or &lt;strong&gt;OCR&lt;/strong&gt;. OCR takes images of text, and turns them into
+plain text. The Tesseract OCR library/utility is suitable for my needs and has
+a python binding (kind of).&lt;/p&gt;
+&lt;h2&gt;Pre-Processing... Again!&lt;/h2&gt;
+&lt;p&gt;But, before I can use OCR on the image there's a bit more pre-processing I
+need to do to ensure best results. The output from thresholding gives us ugly
+outlined text, which produces some terrible results when naively run through
+tesseract.&lt;/p&gt;
+&lt;p&gt;The processing solution, is fortunately simple, I just do a fill on the image.
+To hearken back to the Photoshop analogy, it's like the paint bucket tool. The fill
+is the same color as the outlines so they become hidden and all that's left is
+the insides of the text. I've also inverted the image to be black text on 
+white, instead of white text on black.&lt;/p&gt;
+&lt;h2&gt;Tesseract&lt;/h2&gt;
+&lt;p&gt;With the processing done I ran Tesseract against my image and observed the
+output. But even after the post processing, there were some issues...&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/garbled.png"&gt;&lt;figcaption&gt;This won't work&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;This is hardly usable. I found it entertaining though that my altitude is
+503 watts, and my indicated airspeed has units that are the union of knots
+and hours, I guess that's still a speed since a union is analogous to
+a multiplication? (Or maybe disregard that last sentence, it was a bad
+attempt at a math joke).&lt;/p&gt;
+&lt;p&gt;The solution to this, was as unintuitive as it is boring. I just cropped the
+image area to cut off the units, and voilà:&lt;/p&gt;
+&lt;p&gt;
+&lt;figure&gt;&lt;img src="https://zchfvy.com/images/wtbot_imagerec/instruments.png"&gt;&lt;figcaption&gt;This will&lt;/figcaption&gt;
+&lt;/figure&gt;
+&lt;/p&gt;
+&lt;p&gt;There are still a few issues, notably the "S" in "IAS" has been cut off
+completely by the second round of pr-processing. Also some recognitions
+are slightly off: "GNN" "HATER" and "BNSTRUCTOR", but this data is still
+very much workable.&lt;/p&gt;
+&lt;h1&gt;Next Time&lt;/h1&gt;
+&lt;p&gt;The data recovered from this isn't perfect. The instrument panel has obvious
+issues with not reading correctly sometimes. And the attitude and heading
+detection have some error in them, and sometimes they don't read at all
+(that is, they output "None").&lt;/p&gt;
+&lt;p&gt;In the next section I will discuss filtering this data to clean up these
+issues and provide consistent and clean data to the bot.&lt;/p&gt;</content><category term="Misc"></category><category term="warthunder"></category><category term="python"></category></entry><entry><title>War Thunder bot : Intro</title><link href="https://zchfvy.com/wtbot_intro.html" rel="alternate"></link><published>2016-02-07T17:24:00-08:00</published><updated>2016-02-07T17:24:00-08:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2016-02-07:/wtbot_intro.html</id><summary type="html">&lt;p&gt;An introduction to my project to build a bot for the game War Thunder.&lt;/p&gt;</summary><content type="html">&lt;p&gt;Today I am going to talk about a project I started a short while ago. This post
+is just an overview, and I will continue with a series about the project in
+greater depth, probably I will have the next post up later this week.&lt;/p&gt;
+&lt;p&gt;The project in question is a bot (a program that automates playing) for the
+game &lt;a href="https://warthunder.com/"&gt;War Thunder&lt;/a&gt;. I initially became interested in
+this when I flew bombers for a few missions and noticed how "robotic" it is to
+do so, following the same set of actions each match with little ability to
+react to changing situations: flying a bomber is exactly what this bot will do.
+But first:&lt;/p&gt;
+&lt;h1&gt;Disclaimer&lt;/h1&gt;
+&lt;p&gt;Because of the issues arising around the War Thunder terms of service and the
+general moral ramifications of such a piece of software, I will only be
+running this bot in practice mode and/or offline custom missions where they
+will not interfere with the War Thunder service or game experience.&lt;/p&gt;
+&lt;p&gt;Furthermore I will &lt;strong&gt;not&lt;/strong&gt; be releasing any substantiate code or material
+that would enable others to create their own bots, this blog series will only
+contain general overviews of the techniques used.&lt;/p&gt;
+&lt;p&gt;This project is solely for research and educational purposes, not for cheating.&lt;/p&gt;
+&lt;h1&gt;Design Goals&lt;/h1&gt;
+&lt;p&gt;Of course, I say "flying a bomber" and that could mean many things. When I
+say this I am referring to the large four engine bombers. And, given a large
+bomber, the tactic I will be using is high altitude level bombing. The mission
+will be as follows:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Take off from the runway.&lt;/li&gt;
+&lt;li&gt;Find a safe corner of the battlefield and fly to it.&lt;/li&gt;
+&lt;li&gt;Fly in a helix, ascending until at some desired altitude.&lt;/li&gt;
+&lt;li&gt;Fly to the bomb site, and drop bombs.&lt;/li&gt;
+&lt;li&gt;Fly back to base, descending in altitude.&lt;/li&gt;
+&lt;li&gt;Land.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;A lot of this isn't possible in a "normal" War Thunder game, for example most
+maps have bombers begin already in the air rather than on a runway, also most
+matches of War Thunder don't last nearly long enough for this mission. Because
+of these factors I will be flying in practice mode, and be using the single
+truck that spawns in the middle of the map as a bomb target.&lt;/p&gt;
+&lt;h1&gt;Requirements&lt;/h1&gt;
+&lt;p&gt;There are some factors that would make doing the above easier. In order to
+better learn, I will be restricting myself out of some of them.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;No or minimal use of the readout the game provides on port 8111, I will fall
+  back to using it if absolutely necessary, but I want to do as much as I can
+  through computer vision, and for the purposes of this project I consider
+  using the data exposed here "cheating".&lt;/li&gt;
+&lt;li&gt;No looking at the graphics buffer or network traffic. As with the above I
+  consider it "cheating". Also, I have no idea how to do one of these things
+  and the other is too similar to my day job to be anything but tedious.&lt;/li&gt;
+&lt;li&gt;Difficulty set to "Realistic Battles", respecting proper aerodynamics and
+  having planes that can actually stall is important. I might consider
+  extending the bot towards "Simulator Battles" a stretch goal.&lt;/li&gt;
+&lt;li&gt;Big planes, I want the bot to fly a plane that can't just turn on a dime
+  and needs the controls to be handled carefully. A manoeuvrable fighter would
+  be too easy to steer.&lt;/li&gt;
+&lt;li&gt;Practice mode only, possibly an offline custom map if practice mode proves
+  unsuitable.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;Next Post&lt;/h1&gt;
+&lt;p&gt;I will be posting my first update, hopefully later this week. It will be about
+using OpenCV in Python to read the plane instruments from the glass cockpit
+view. Keep tuned!&lt;/p&gt;</content><category term="Misc"></category><category term="warthunder"></category><category term="python"></category></entry><entry><title>Hello World</title><link href="https://zchfvy.com/helloworld.html" rel="alternate"></link><published>2016-02-01T23:11:00-08:00</published><updated>2016-02-01T23:43:00-08:00</updated><author><name>Jason Hamilton-Smith</name></author><id>tag:zchfvy.com,2016-02-01:/helloworld.html</id><summary type="html">&lt;p&gt;An introduction to my website, and how it was created.&lt;/p&gt;</summary><content type="html">&lt;p&gt;Looks like I finally did it! I made a webpage! I'l probably be using this to
+post about cute little code side-projects I work on mostly, but who knows where
+time will take me. For now, a little article on how I set up the site itself.&lt;/p&gt;
+&lt;h1&gt;How I made this Webpage&lt;/h1&gt;
+&lt;p&gt;When I set out to make a website, I had two big requirements:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;It must not be permanently tied to some third-party service I cannot control.&lt;/li&gt;
+&lt;li&gt;It must be easy to use.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Of course, the above two often conflict. Enter the awesome 'Pelican' tool:
+with it I can have my site generated locally on my PC, out of source files
+I create without any external service  requirements (And, of course, Pelican
+is open source too!). I will never be prey to the service I am based on
+shutting down or anything of that sort (I am posting this days after Parse
+announced their shutdown).&lt;/p&gt;
+&lt;p&gt;On the other hand, I do need somewhere to host my code, and for that I chose
+AWS. It &lt;strong&gt;is&lt;/strong&gt; a service out of my control, but I am not tied to it, my site
+is static HTML that lives on my own computer, and I can move it to theoreticaly
+any hosting service.&lt;/p&gt;
+&lt;p&gt;That out of the way, here's how I set up this whole operation:&lt;/p&gt;
+&lt;h2&gt;Tools&lt;/h2&gt;
+&lt;p&gt;First off, here's a listing of the tools I used for this:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://blog.getpelican.com/"&gt;pelican&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://github.com/nairobilug/pelican-alchemy/tree/43f23f05b9adc0c6bf18d2f4ebd47771a7fe8f4a"&gt;alchemy theme&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://aws.amazon.com"&gt;aws&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://letsencrypt.org/"&gt;letsencrypt&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://github.com/dlapiduz/letsencrypt-s3front"&gt;this letsencrypt plugin&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Setting up Pelican with S3&lt;/h2&gt;
+&lt;p&gt;This was very straightforward, I followed
+&lt;a href="http://lexual.com/blog/setup-pelican-blog-on-s3/"&gt;this&lt;/a&gt; guide and it worked
+the first time. Though note, the &lt;code&gt;pelican-quickstart&lt;/code&gt; command doesn't*
+appear to have defaults for every option, I didn't know what my domain was
+going to be at the time, but it turns out changing these values after is super
+easy, just look in the generated &lt;code&gt;pelicanconf.py&lt;/code&gt; and &lt;code&gt;publishconf.py&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;I didn't actualy start making content pages (or rather, this content page)
+until I had completed all the other steps and was happy with my setup, but
+that was also straightforward. I am using Markdown as described
+&lt;a href="http://docs.getpelican.com/en/3.6.3/quickstart.html"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Configuring the website&lt;/h2&gt;
+&lt;p&gt;This step was just as straightforward as the first part, but more time
+consuming, largely due to me guessing for myself what to do until just
+deciding to follow Amazon's tutorial
+&lt;a href="http://docs.aws.amazon.com/gettingstarted/latest/swh/website-hosting-intro.html"&gt;here&lt;/a&gt;.
+I already made the buckets in the first step, and in retrospect may have done
+this out of order. A big part of this step is waiting for DNS to propogate,
+and waiting for Cloudfront to start up. I don't think I need the speed of a
+CDN for such a small site, but Cloudfront is required to use HTTPS in this
+setup, as desribed in the next step.&lt;/p&gt;
+&lt;h2&gt;Setting Up Letsencrypt&lt;/h2&gt;
+&lt;p&gt;This part was not hard, but did require a bit of fiddling. I already had found
+the afformentioned plugin when I started this step, so all there was to do was
+use it. I copied the snippet from the readme into an &lt;code&gt;update_cert.sh&lt;/code&gt; and
+filled in my AWS credentials (I put this in a &lt;strong&gt;seperate&lt;/strong&gt; folder from the main
+website to avoid putting credentials in my git repository).&lt;/p&gt;
+&lt;p&gt;When I ran the script there were still a few issues first I had to update some
+modules from pip, &lt;code&gt;pip install --upgrade letsencrypt&lt;/code&gt; accomplished that easily.
+Secondly, the AWS user that the credentials were tied too was setup wrong, a
+bit of fiddling revealed it needs the following:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Access to the S3 bucket the website is in&lt;/li&gt;
+&lt;li&gt;Access to Cloudfront's configuration&lt;/li&gt;
+&lt;li&gt;The following policy for uploading certificates:&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="w"&gt;      &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Version&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;2012-10-17&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="w"&gt;      &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Statement&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;
+&lt;span class="w"&gt;          &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="w"&gt;              &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Effect&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Allow&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="w"&gt;              &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Action&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;
+&lt;span class="w"&gt;                  &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;iam:UploadServerCertificate&amp;quot;&lt;/span&gt;
+&lt;span class="w"&gt;              &lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+&lt;span class="w"&gt;              &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Resource&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;*&amp;quot;&lt;/span&gt;
+&lt;span class="w"&gt;          &lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="w"&gt;      &lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h1&gt;Looking Forward&lt;/h1&gt;
+&lt;p&gt;While setting up this website took time, it wasn't all that hard for something
+that is so custom. And actualy writing this content page was a breeze! In the
+future I may look at some more pelican plugins (the IPython notebook one looks
+primising). I'l probably also be adding some more general purpose pages in
+addition to the blog. I also &lt;em&gt;might&lt;/em&gt; look at running a Flask server on an AWS
+micro instance if I have the need for a small dynamic server.&lt;/p&gt;
+&lt;p&gt;All said, I'm glad I finally got around to making this, now to work on some
+real content!&lt;/p&gt;</content><category term="Misc"></category><category term="pelican"></category><category term="aws"></category><category term="website"></category></entry></feed>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+      <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="https://zchfvy.com/vic3analyzer.html" />
+
+    <title>  Zchfvy &mdash; Victoria 3 Game Scraping
+</title>
+
+      <link rel="icon" type="image/png" href="/favicon-196x196.png" sizes="196x196">
+      <link rel="icon" type="image/png" href="/favicon-160x160.png" sizes="160x160">
+      <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+      <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+      <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+
+
+      <link type="application/atom+xml" rel="alternate" href="/feeds/all.atom.xml"  title="Zchfvy Atom Feed">
+
+    <link rel="stylesheet" href="https://zchfvy.com/theme/css/style.css">
+    <link rel="stylesheet" href="https://zchfvy.com/theme/css/style_extra.css">
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-73227889-1', 'auto');
+    ga('send', 'pageview');
+
+  </script>
+
+    <meta name="author" content="Jason Hamilton-Smith">
+    <meta name="description" content="A tool to strip data from a game and compile a database">
+  <meta name="tags" contents="gaming, automation, ">
+</head>
+
+<body>
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <h1 class="header-name">
+        <a class="nodec" href="https://zchfvy.com">Zchfvy</a>
+      </h1>
+      <h3 class="header-text"></h3>
+      <ul class="header-menu list-inline">
+          <li><a class="nodec icon-mail-alt" href="mailto:hs.jason@gmail.com"></a></li>
+          <li><a class="nodec icon-github" href="https://github.com/jason-hs"></a></li>
+          <li><a class="nodec icon-twitter" href="https://twitter.com/jason_hs"></a></li>
+          <li><a class="nodec icon-rss" href="/feeds/all.atom.xml"></a></li>
+      </ul>
+    </div>
+  </div>
+</header> <!-- /.header -->  <div class="container">
+  <div class="post full-post">
+    <h1 class="post-title">
+      <a href="/vic3analyzer.html" title="Permalink to Victoria 3 Game Scraping">Victoria 3 Game Scraping</a>
+    </h1>
+    <ul class="list-inline">
+      <li class="post-date">
+        <a class="text-muted" href="/vic3analyzer.html" title="2023-03-30T00:28:00-07:00">Thu 30 March 2023</a>
+      </li>
+      <li class="muted">&middot;</li>
+      <li class="post-category">
+        <a href="https://zchfvy.com/category/tbd.html">TBD</a>
+      </li>
+        <li class="muted">&middot;</li>
+        <li>
+            <a href="/tag/gaming.html">gaming</a>,             <a href="/tag/automation.html">automation</a>        </li>
+    </ul>
+    <div class="post-content">
+      <h1>The Game/ The Problem</h1>
+<h1>Initial Approach</h1>
+<p>Continue from ck3 project
+Process games directly in one thread
+Alchemy for DB</p>
+<h1>Big Problems</h1>
+<p>oom system lockup
+resource utilization
+Need to do all in one</p>
+<h1>Re-attempt as seperate processes collect/process</h1>
+<p>Still too slow
+End up using 3p tool to scrape replays instead of lark
+bla</p>
+<h1>Fonal Lesson, using GNU coreutils</h1>
+<p>GNU parallel is good</p>
+    </div>
+  </div>
+  <hr class="separator">
+  <div class="col-md-8 col-md-offset-2">
+  <div id="disqus_thread">
+    <script>
+      var disqus_shortname = 'zchfvy';
+      (function() {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] ||
+         document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>
+      Please enable JavaScript to view the
+      <a href="https://disqus.com/?ref_noscript=zchfvy">
+        comments powered by Disqus.
+      </a>
+    </noscript>
+    <a href="https://disqus.com" class="dsq-brlink">
+      blog comments powered by <span class="logo-disqus">Disqus</span>
+    </a>
+  </div>
+  </div>
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="text-center">
+      Jason Hamilton-Smith, <a href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative Commons Attribution-ShareAlike 4.0 International License.</a> unless otherwise noted.
+    </p>
+    <div class="text-center">
+      Generated by <a href="http://getpelican.com" target="_blank">Pelican</a> with a <a href="https://github.com/jason-hs/pelican-alchemy">modified version</a> of the <a href="http://github.com/nairobilug/pelican-alchemy">alchemy</a> theme.
+    </div>
+  </div>
+</footer> <!-- /.footer -->
+  <script src="https://zchfvy.com/theme/js/jquery.min.js"></script>
+  <script src="https://zchfvy.com/theme/js/bootstrap.min.js"></script>
+</body> <!-- 42 -->
+
+</html>
