@@ -24,6 +24,5 @@ jobs:
 
     - name: Publish pages
       run: |
-        git checkout gh-pages
-        git pull
+        git fetch
         make github
